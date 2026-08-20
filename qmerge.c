@@ -203,6 +203,7 @@ typedef struct llist_char_t llist_char;
 
 static void pkg_fetch(int, const depend_atom *, tree_pkg_ctx *);
 static void pkg_merge(int, const depend_atom *, tree_pkg_ctx *);
+static void strip_world(char**, char*);
 static int pkg_unmerge(tree_pkg_ctx *, depend_atom *, set *, int, char **, int, char **);
 
 static bool
@@ -1763,6 +1764,9 @@ pkg_unmerge(tree_pkg_ctx *pkg_ctx, depend_atom *rpkg, set *keep,
 	int portroot_fd;
 	llist_char *dirs = NULL;
 	bool unmerge_config_protected;
+        char *worldbuff = NULL;
+        size_t worldbufsize;
+        char full_pkg_name[128];
 
 	buf = phases = NULL;
 	snprintf(T, sizeof(T), "%s%s/qmerge._unmerge_.%s",
@@ -1924,6 +1928,7 @@ pkg_unmerge(tree_pkg_ctx *pkg_ctx, depend_atom *rpkg, set *keep,
 	}
 
 	if (!pretend) {
+	        sprintf(full_pkg_name, "%s/%s%s%s", atom->CATEGORY, atom->PN, atom->SLOT ? ":" : "", atom->SLOT ? atom->SLOT : "");
 		buf = tree_pkg_meta(pkg_ctx, Q_EAPI);
 		if (buf == NULL)
 			buf = (char *)"0";  /* default */
@@ -1935,7 +1940,10 @@ pkg_unmerge(tree_pkg_ctx *pkg_ctx, depend_atom *rpkg, set *keep,
 							phases, PKG_POSTRM,
 							T, T, buf, rpkg == NULL ? "" : rpkg->PVR);
 		}
-
+	        eat_file("/var/lib/portage/world", &worldbuff, &worldbufsize);
+	        strip_world(&worldbuff, full_pkg_name);
+	        if (worldbuff)
+	          free(worldbuff);
 		/* remove the tmp */
 		rm_rf(T);
 		rmdir(T);
@@ -1953,6 +1961,23 @@ pkg_unmerge(tree_pkg_ctx *pkg_ctx, depend_atom *rpkg, set *keep,
 	}
 
 	return 0;
+}
+
+static void
+strip_world(char **buf, char* s) {
+  char* ptr = *buf;
+  int fd = open("/var/tmp/qmerge._unmerge_temp_world", O_WRONLY | O_CREAT , 0644);
+  char line[128];
+  while (sscanf(ptr, "%s", line) != -1) {
+    int r = memcmp(line, s, strlen(s)+1);
+    int line_len = strlen(line)+1;
+    if (r != 0) {
+      write(fd, line, line_len-1);
+      write(fd, "\n", 1);
+    } ptr += line_len;
+  }
+  close(fd);
+  rename("/var/tmp/qmerge._unmerge_temp_world", "/var/lib/portage/world");
 }
 
 static int
