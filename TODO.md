@@ -27,7 +27,6 @@
 - multiple binary repos?
   possibly using `--binhost URL --binhost URL` and/or a config bit we can
   pick up from make.conf perhaps?
-- verify gpg sign the packages file (before compression)
 - parallel fetch binpkgs?
 - env is not saved/restored between pkg\_{pre,post}inst (see portage and REPO\_LAYOUT\_CONF\_WARN)
 - support TTL field in binpkgs file
@@ -43,9 +42,11 @@
 - integrate qxpak and qtbz2 with this package (the latter are confusing,
   and qpkg is doing parts of qtbz2's compose
 - share install\_mask code from qmerge to handle negatives from
-  pkg\_install\_mask too
-- make world agument really read world file, add @all?
+  pkg\_install\_mask too (libq module needed?)
+- make world agument really read world file (share with qmerge, move to
+  libq/profile?), add @all?
 - produce and/or update Packages (and Packages.gz) file
+- allow signing of gpkg files using --signas as for qmanifest
 
 # quse
 - make -v only print requested USE-flag when flags given
@@ -66,7 +67,7 @@
 - calculate or take some "smooth" factor just added on top of the
   guestimate alternative to current time jumping
 - multiple files support -- current opinion: don't do it
-- compressed file support, use guessing support from qmerge?
+- compressed file support, use guessing support from libq/file\_magic?
 
 # qfile
 - stop searching when absolute path argument was found?
